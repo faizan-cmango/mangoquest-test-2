@@ -1,0 +1,72 @@
+{
+  "kind": "change_impact",
+  "schema_version": 1,
+  "tool": "change_impact",
+  "block": "sync_fifo",
+  "inputs": [
+    {
+      "path": "spec/sync_fifo/sad.md",
+      "version": 5,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/decisions.yaml",
+      "version": 5,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/clocks.yaml",
+      "version": 1,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/idd/m_out.yaml",
+      "version": 4,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/sad.yaml",
+      "version": 5,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/riskmap.yaml",
+      "version": 4,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/vps.yaml",
+      "version": 6,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/idd/s_in.yaml",
+      "version": 4,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/rtm.yaml",
+      "version": 4,
+      "sha256": ""
+    },
+    {
+      "path": "spec/sync_fifo/errata.yaml",
+      "version": 1,
+      "sha256": ""
+    }
+  ],
+  "package": "spec/sync_fifo",
+  "from_version": "0.1",
+  "to_version": "0.4",
+  "change_type": null,
+  "declared_modules": [],
+  "affected_blocks": [],
+  "affected_modules": [],
+  "requirements": [],
+  "scenarios_retired": [],
+  "facts": [],
+  "stale_downstream": [],
+  "signed_off": false,
+  "notify": {},
+  "markdown": "docs/change-impact.md"
+}

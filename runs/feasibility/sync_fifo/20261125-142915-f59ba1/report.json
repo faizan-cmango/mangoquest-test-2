@@ -1,0 +1,39 @@
+{
+  "kind": "feasibility",
+  "schema_version": 1,
+  "tool": "feasibility",
+  "block": "sync_fifo",
+  "inputs": [
+    {
+      "path": "docs/feasibility/sync_fifo/sync_fifo.sv",
+      "version": 3,
+      "sha256": ""
+    }
+  ],
+  "package": "spec/sync_fifo",
+  "design": "proxy",
+  "top": "sync_fifo",
+  "clock": "core_clk",
+  "target_mhz": 200.0,
+  "area_um2_max": null,
+  "method": "opensta_liberty",
+  "liberty_kind": "pdk",
+  "liberty": "sky130_fd_sc_hd__tt_025C_1v80",
+  "confidence": 0.5,
+  "corners": [
+    "tt"
+  ],
+  "skipped": null,
+  "fmax_mhz_estimate": 180.2,
+  "worst_slack_ns": -1.4257,
+  "worst_path": "out_ready -> _1788_",
+  "area_um2_estimate": 20316.9856,
+  "cell_count": 1222,
+  "meets_target": false,
+  "challenge": "AC-1",
+  "notes": [
+    "worst setup slack at tt",
+    "an input or output path is the worst (-1.426 ns at the recipe's I/O delays); the fmax estimate is of the register-to-register paths (-0.550 ns)",
+    "a proxy of the architecture, not RTL"
+  ]
+}

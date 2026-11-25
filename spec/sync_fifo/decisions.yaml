@@ -1,0 +1,67 @@
+decisions:
+  - id: ADR-01
+    date: 2026-11-25
+    status: proposed
+    title: "Allow one combinational arc, out_ready to in_ready, only while the FIFO is full"
+    req_ids: [REQ-3.1.6, REQ-3.1.7, REQ-3.3.1, REQ-3.3.2]
+    context: "The brief requires in_ready to respond combinationally to out_ready when full, and also forbids any combinational path between input and output ports. These contradict each other. The person was asked and chose option 1."
+    alternatives: ["no combinational paths, accept a bubble when full", "no combinational paths, add a skid entry so the capacity changes", "allow only the out_ready to in_ready arc while full (chosen)"]
+    decision: "The no-combinational-path rule is read as: no path except out_ready to in_ready while the FIFO holds 16 words. All other input-to-output paths stay forbidden."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-02
+    date: 2026-11-25
+    status: proposed
+    title: "No write-through when empty: one-cycle latency from accept to out_valid"
+    req_ids: [REQ-3.1.8, REQ-3.3.1]
+    context: "A write-through from in_data to out_data when empty would be a combinational input-to-output path, which the brief forbids."
+    alternatives: ["combinational bypass when empty", "one-cycle latency (chosen)"]
+    decision: "A word accepted into an empty FIFO appears on the outputs one cycle after the accepting edge."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-03
+    date: 2026-11-25
+    status: proposed
+    title: "in_ready is 0 during reset and out_data is 0 when out_valid is 0"
+    req_ids: [REQ-3.2.2, REQ-3.2.4]
+    context: "The brief fixes reset only as emptying the FIFO and clearing out_valid. The reset values of in_ready and out_data are open; accepting a word while rst_n is 0 would lose it."
+    alternatives: ["in_ready 1 in reset, accepted words dropped", "in_ready 0 in reset (chosen)", "out_data unspecified when out_valid is 0", "out_data 0 when out_valid is 0 (chosen)"]
+    decision: "in_ready stays 0 until the first edge with rst_n 1 has passed; out_data is 0 whenever out_valid is 0."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-04
+    date: 2026-11-25
+    status: proposed
+    title: "Storage as a 16-word flop array with two wrap-around indices and an occupancy count"
+    req_ids: [REQ-3.1.1, REQ-3.1.3, REQ-6.1.1]
+    context: "The brief fixes depth and width, not the storage. Flops give a read of the oldest word from state alone, so no input reaches out_data, and let a full FIFO write and read in one edge."
+    alternatives: ["synchronous SRAM macro (read latency breaks the no-bubble and hold rules)", "flop array (chosen)"]
+    decision: "Kemi builds the storage as a flop array; the SAD records this as guidance and the RTM states only port behaviour."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-05
+    date: 2026-11-25
+    status: proposed
+    challenge_ref: AC-1
+    title: "Dedicated output stage: out_valid and out_data come straight from flip-flops, not from the read mux"
+    req_ids: [REQ-3.1.8, REQ-3.2.2, REQ-3.2.4, REQ-3.3.1, REQ-6.1.1]
+    context: "AC-1: the proxy with out_data behind a 16:1 read mux missed 200 MHz (196 MHz, slack -2.76 ns on the output path). The request is to decompose the block so out_data is driven directly from a flip-flop."
+    alternatives: ["errata_major: lower the frequency target (not chosen: not approved)", "keep the read mux on out_data (measured miss)", "dedicated output stage in front of a body store (chosen)"]
+    decision: "sync_fifo is built as a body store plus an output stage of one word. The oldest word and out_valid live in the output stage and drive out_data and out_valid from flip-flops; the body store holds up to 15 further words, so the total capacity stays 16. When the output stage is free or released and the body store is empty, an accepted word loads the output stage at the clock edge (one-cycle latency, no write-through to the ports). out_data is loaded with 0 when the stage empties. in_ready stays: run and (not full, or out_ready), with full meaning the output stage and the 15 body words are all held, so the single out_ready to in_ready arc and in_ready 0 during reset are kept. Ports, REQ ids and the 200 MHz target are unchanged. Flop-array storage for the body stays guidance only. This ADR is a decomposition change; it does not close AC-1, which stays open until a measurement meets 200 MHz."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-06
+    date: 2026-11-25
+    status: proposed
+    challenge_ref: AC-1
+    title: "Pre-read second stage: the output stage loads from a register, not from the body read mux"
+    req_ids: [REQ-3.1.6, REQ-3.1.7, REQ-3.1.8, REQ-3.2.4, REQ-3.3.1, REQ-6.1.1]
+    context: "AC-1: with ADR-05 the proxy measured 149.1 MHz (slack -1.71 ns, load logic from the 16:1 body mux into the output stage). The person asked for a pre-read second stage."
+    alternatives: ["errata_major: lower the frequency target (not approved)", "ADR-05 output stage fed by the body mux (measured 149.1 MHz)", "pre-read stage between body and output stage (chosen, measured 180.2 MHz, still a miss)", "deeper pipelined body read (not evaluated)"]
+    decision: "sync_fifo is built as an output stage of one word, a pre-read stage of one word and a body store of up to 14 words: capacity stays 16. The output stage loads from the pre-read stage; the pre-read stage loads from the body store (or from in_data when the body is empty). Words fill the front stages first. A word accepted while the output stage is free and the pre-read stage is empty loads the output stage directly at the clock edge (one-cycle latency, no write-through to the ports). in_ready stays: run and (not full, or out_ready), full meaning all 16 words are held, so the single out_ready to in_ready arc, in_ready 0 during reset and out_data 0 while out_valid is 0 are kept. Ports, REQ ids, ordering, capacity and the 200 MHz target are unchanged; body storage as flop array stays guidance. This ADR is a decomposition change and does not close AC-1: the proxy measured 180.2 MHz, worst slack -1.426 ns on out_ready to a stage-control flop (input delay budget and out_ready fanout); the register-to-register slack is -0.550 ns. AC-1 stays open until a measurement meets 200 MHz."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-07
+    date: 2026-11-25
+    status: proposed
+    challenge_ref: AC-1
+    title: "Two-word output stage with decoupled load enables: out_ready steers control only, not data flops"
+    req_ids: [REQ-3.1.3, REQ-3.1.6, REQ-3.1.7, REQ-3.1.8, REQ-3.2.4, REQ-3.3.1, REQ-3.3.2, REQ-6.1.1]
+    context: "AC-1: with ADR-06 the proxy measured 180.2 MHz, worst slack -1.426 ns on out_ready to a stage-control flop, because out_ready gated the load enables of the stage. The person asked for a 2-word output stage with independent load enables to cut the out_ready fanout."
+    alternatives: ["errata_major: lower the frequency target (not approved)", "ADR-06 single output stage (measured 180.2 MHz)", "2-word output stage used as a ping-pong pair, each word with its own load enable derived from state only (chosen, measured 158.0 MHz, still a miss)", "pipelined body read one cycle ahead (not evaluated)"]
+    decision: "The output stage is two words, used alternately; out_valid and out_data are read from the word a head toggle selects, so the oldest word is never moved on a dequeue. Each word has its own load enable, derived from stage state only (is the word free, is the pre-read stage full), never from out_ready; out_ready reaches only the head toggle, the valid bits, the occupancy count and in_ready. Words fill the output stage, then the pre-read stage (1 word), then the body (flop array, 14 words, guidance only). A word accepted into an empty FIFO loads a free output word at the clock edge: one-cycle latency, no write-through. Capacity seen at the ports stays 16: in_ready is limited by a count of held words, so in_ready is 1 below 16 held words and equals out_ready at 16. To let a word be accepted at 16 held words in the cycle the oldest is released without out_ready steering any data flop, the stages may hold a 17th word physically; this is not visible at the ports. out_data is 0 when out_valid is 0 and in_ready is 0 while rst_n is 0. Ports, REQ ids, ordering and the 200 MHz target are unchanged. This ADR is a decomposition change and does not close AC-1: the proxy measured 158.0 MHz, worst slack -1.3275 ns (register to register), area 22079.9 um2. AC-1 stays open until a measurement meets 200 MHz."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}

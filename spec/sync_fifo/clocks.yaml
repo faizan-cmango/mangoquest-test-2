@@ -1,0 +1,12 @@
+strategy: >-
+  One clock domain. core_clk runs at 200 MHz as the brief states; every port is
+  synchronous to it, so there are no crossings. rst_n is active low and
+  synchronous: it takes effect only at a core_clk edge. It is released by the
+  surrounding reset controller synchronously to core_clk.
+clocks:
+  - {name: core_clk, freq_mhz: 200, source: system clock pin, domain: core}
+resets:
+  - {name: rst_n, domain: core, style: sync, polarity: active_low, assert: synchronous, deassert: synchronous, sync_clock: core_clk, source: system reset controller}
+cdc: []
+blocks:
+  - {id: sync_fifo, clock: core_clk, reset: rst_n, cdc_inputs: []}
