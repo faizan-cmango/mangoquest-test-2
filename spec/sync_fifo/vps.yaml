@@ -1,4 +1,4 @@
-vps: spec/sync_fifo/vps.yaml@v0.2
+vps: spec/sync_fifo/vps.yaml@v0.3
 block: sync_fifo
 scenarios:
   - id: VPS-01

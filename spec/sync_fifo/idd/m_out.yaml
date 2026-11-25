@@ -1,5 +1,5 @@
 idd: IDD-M_OUT
-version: "0.2"
+version: "0.3"
 block: sync_fifo
 side: master
 protocol_class: valid-ready

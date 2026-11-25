@@ -1,5 +1,5 @@
 project: sync_fifo
-sad_version: "0.2"
+sad_version: "0.3"
 scope: full
 blocks:
   - id: sync_fifo
@@ -41,4 +41,4 @@ pin_intent:
   not_applicable: "physical design and pin placement are out of the brief's scope"
 feasibility:
   blocks:
-    - {block: sync_fifo, clock: core_clk, target_mhz: 200, fmax_mhz: 149.1, headroom_pct: -25.5, area_um2: 21221.6, method: opensta_liberty, confidence: 0.5, meets_target: false, report: runs/feasibility/sync_fifo/20261125-142655-0ebc3f/report.json}
+    - {block: sync_fifo, clock: core_clk, target_mhz: 200, fmax_mhz: 180.2, headroom_pct: -9.9, area_um2: 20317.0, method: opensta_liberty, confidence: 0.5, meets_target: false, report: runs/feasibility/sync_fifo/20261125-142915-f59ba1/report.json}
