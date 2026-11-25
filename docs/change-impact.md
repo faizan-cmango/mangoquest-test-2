@@ -1,4 +1,4 @@
-# Change impact: spec/sync_fifo 0.1 -> 0.3
+# Change impact: spec/sync_fifo 0.1 -> 0.4
 
 Built by spec_lint from the comparison of this revision with the version it revises (MQ-REV-*). It lists what names each changed requirement; it does not judge whether a change is a wording fix or a new meaning.
 

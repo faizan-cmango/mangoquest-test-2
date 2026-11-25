@@ -1,4 +1,4 @@
-# System Architecture Document — sync_fifo · SAD v0.3
+# System Architecture Document — sync_fifo · SAD v0.4
 
 > Machine index: `sad.yaml`. Requirements live in `rtm.yaml`, ports in `idd/`, scenarios in
 > `vps.yaml`, risk in `riskmap.yaml`, clocks in `clocks.yaml`.
@@ -29,6 +29,8 @@ without gain. Guidance, not a requirement (ADR-04): the body is a flop array. Th
 read from state alone, so out_valid and out_data depend on no input (REQ-3.3.1);
 in_ready is "not full" OR out_ready, which gives the one arc (REQ-3.1.7, REQ-3.3.2).
 
+ADR-07 (proposed, for AC-1) refines the front end: the output stage becomes two words used alternately (a head toggle picks the word shown on out_valid and out_data, so a dequeue moves no data), each with its own load enable derived from stage state only, never from out_ready. out_ready then reaches only the head toggle, the valid bits, the held-word count and in_ready, which cuts its fanout. The stages are the 2 output words, the 1-word pre-read stage and a 14-word body; in_ready is limited by a count of 16 held words, and the stages may hold a 17th word physically so that the accept-and-release cycle at 16 needs no data move steered by out_ready. This is not visible at the ports: capacity stays 16 and the single out_ready to in_ready arc is unchanged.
+
 ## 3.1 Dataflow — REQ-3.1.1 … REQ-3.1.8
 A transfer is valid and ready both 1 at a rising edge (REQ-3.1.2). Order is kept and nothing is
 lost or duplicated (REQ-3.1.3). Cycle sketch at full, in_valid 1, out_ready 1:
@@ -57,15 +59,17 @@ budgets. Feasibility results: see the table below.
 
 Feasibility (proxy of the architecture with the output stage of ADR-05, opensta_liberty, confidence 0.5, pre-layout, tt): the 200 MHz target is still MISSED. Fmax estimate 149.1 MHz; worst setup slack -1.707 ns on the path _1197_ -> _1162_ (register to register); area 21221.6 um2. The first proxy (read mux on out_data) gave 196 MHz and -2.764 ns on an output path. The output stage removed the output-path miss but the load logic (body read mux and in_data select into the stage, gated by out_ready) is now the longest path. The target is not relaxed. AC-1 stays open. Update (ADR-06, pre-read second stage, proxy with 14-word body): Fmax estimate 180.2 MHz; worst setup slack -1.426 ns on out_ready -> a stage-control flop (input delay budget plus out_ready fanout); register-to-register slack -0.550 ns; area 20317.0 um2. Still MISSED; AC-1 stays open and the target is not relaxed. Options for the person: (a) errata_major to lower the target; (b) a decomposition that cuts the out_ready fanout, for example a 2-word output stage with decoupled load enables so out_ready gates fewer flops (ADR); (c) a pipelined body read one cycle ahead (ADR). Results are of a proxy, not of Kemi's RTL.
 
+Update (ADR-07, 2-word ping-pong output stage with decoupled load enables, proxy at docs/feasibility/sync_fifo/sync_fifo.sv, opensta_liberty, confidence 0.5, pre-layout, tt): Fmax estimate 158.0 MHz; worst setup slack -1.3275 ns on _2060_ -> _1979_ (register to register); area 22079.9 um2. The 200 MHz target is still MISSED, so slack is not non-negative and Fmax is below 200 MHz; AC-1 stays open and the target is not relaxed. Fmax history: 196.0 (read mux), 149.1 (ADR-05), 180.2 (ADR-06), 158.0 MHz (ADR-07). ADR-07 did not improve on ADR-06: the count and pointer update logic and the head and tail selects now set the path. Further options for the person: (a) errata_major to lower the target; (b) a pipelined body read one cycle ahead with registered one-hot stage state (ADR); (c) re-measure on Kemi's RTL, which can be hand-optimised beyond the proxy.
+
 ## 7 Risk register
 See `riskmap.yaml`.
 
 ## 8 Open items
-Open ArchChallenges: AC-1 (target_conflict, blocker): the proxy with the pre-read stage (ADR-06) still misses 200 MHz at 180.2 MHz (149.1 MHz with ADR-05; see 6.1); the person decides on a further decomposition or a target change. The brief's contradiction is resolved by the person's answer
+Open ArchChallenges: AC-1 (target_conflict, blocker): the proxy with the 2-word output stage (ADR-07) still misses 200 MHz at 158.0 MHz, slack -1.3275 ns (180.2 MHz with ADR-06, 149.1 MHz with ADR-05; see 6.1); the person decides on a further decomposition or a target change. The brief's contradiction is resolved by the person's answer
 (ADR-01, status proposed, for sign-off).
 
 Unresolved architectural decisions, for the approver:
-1. ADR-01 to ADR-06 await acceptance.
+1. ADR-01 to ADR-07 await acceptance.
 2. Should a depth-status output (level, almost-full) be added? Not asked for, so not added.
 3. Whether the neighbouring blocks tolerate the out_ready to in_ready arc in their timing budget (R-01).
 4. Behaviour when rst_n changes asynchronously to core_clk: unspecified and illegal.
