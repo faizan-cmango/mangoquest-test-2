@@ -1,4 +1,4 @@
-rtm: spec/sync_fifo/rtm.yaml@v0.1
+rtm: spec/sync_fifo/rtm.yaml@v0.2
 block: sync_fifo
 requirements:
   - id: REQ-3.1.1

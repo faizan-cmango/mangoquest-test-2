@@ -1,4 +1,4 @@
-# System Architecture Document — sync_fifo · SAD v0.1
+# System Architecture Document — sync_fifo · SAD v0.2
 
 > Machine index: `sad.yaml`. Requirements live in `rtm.yaml`, ports in `idd/`, scenarios in
 > `vps.yaml`, risk in `riskmap.yaml`, clocks in `clocks.yaml`.
@@ -20,9 +20,13 @@ Assumptions (defaults, none asked):
 5. No area, power or pin target is given, so none is set; the only target is 200 MHz.
 
 ## 2 Block decomposition
-One block, `sync_fifo`: a storage of 16 words, a write position, a read position and an occupancy
-measure. A split would add interfaces without gain. Guidance, not a requirement (ADR-04): the
-oldest word is read from state alone, so out_valid and out_data depend on no input (REQ-3.3.1);
+One block, `sync_fifo`, decomposed internally (ADR-05) into an output stage of one word and a body
+store of up to 15 words, so the capacity stays 16. out_valid and out_data are driven straight from
+the output stage's flip-flops, not from a read mux; the stage is loaded at a clock edge from the
+body store, or from in_data when the body is empty (one-cycle latency, no write-through to the
+ports), and loaded with 0 when it empties. A split into separate blocks would add interfaces
+without gain. Guidance, not a requirement (ADR-04): the body is a flop array. The oldest word is
+read from state alone, so out_valid and out_data depend on no input (REQ-3.3.1);
 in_ready is "not full" OR out_ready, which gives the one arc (REQ-3.1.7, REQ-3.3.2).
 
 ## 3.1 Dataflow — REQ-3.1.1 … REQ-3.1.8
@@ -51,17 +55,17 @@ any output within a cycle; out_valid and out_data change only at a clock edge. B
 One clock, 200 MHz. The critical path is out_ready to in_ready through the input and output delay
 budgets. Feasibility results: see the table below.
 
-Feasibility (proxy of the architecture, opensta_liberty, confidence 0.5, pre-layout, tt): the 200 MHz target is MISSED. Fmax estimate 196 MHz (register-to-register slack -0.103 ns); worst setup slack -2.764 ns on the path from the read-position state through the 16:1 read mux to out_data, against the 30 % output delay; area 20211.9 um2. This raised challenge AC-1 (target_conflict). The target is not relaxed here. Options for the person: errata_major to change the frequency target, or an ADR that changes the decomposition so out_data comes straight from a dedicated output stage instead of the read mux (this keeps the ports and the combinational-arc rule). The result is of a proxy, not of Kemi's RTL.
+Feasibility (proxy of the architecture with the output stage of ADR-05, opensta_liberty, confidence 0.5, pre-layout, tt): the 200 MHz target is still MISSED. Fmax estimate 149.1 MHz; worst setup slack -1.707 ns on the path _1197_ -> _1162_ (register to register); area 21221.6 um2. The first proxy (read mux on out_data) gave 196 MHz and -2.764 ns on an output path. The output stage removed the output-path miss but the load logic (body read mux and in_data select into the stage, gated by out_ready) is now the longest path. The target is not relaxed. AC-1 stays open. Further options for the person: (a) errata_major to lower the target; (b) a decomposition with a pre-read body: the next-oldest word held in a second stage so the stage loads from a register, not a 16:1 mux; (c) a 2-entry stage plus a body written and read in a pipelined way, accepting no extra port. The result is of a proxy, not of Kemi's RTL.
 
 ## 7 Risk register
 See `riskmap.yaml`.
 
 ## 8 Open items
-Open ArchChallenges: AC-1 (target_conflict, blocker): the proxy misses 200 MHz (see 6.1); the person decides between a target change and a decomposition change. The brief's contradiction is resolved by the person's answer
+Open ArchChallenges: AC-1 (target_conflict, blocker): the proxy with the output stage (ADR-05) still misses 200 MHz at 149.1 MHz (see 6.1); the person decides on a further decomposition or a target change. The brief's contradiction is resolved by the person's answer
 (ADR-01, status proposed, for sign-off).
 
 Unresolved architectural decisions, for the approver:
-1. ADR-01 to ADR-04 await acceptance.
+1. ADR-01 to ADR-05 await acceptance.
 2. Should a depth-status output (level, almost-full) be added? Not asked for, so not added.
 3. Whether the neighbouring blocks tolerate the out_ready to in_ready arc in their timing budget (R-01).
 4. Behaviour when rst_n changes asynchronously to core_clk: unspecified and illegal.

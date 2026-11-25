@@ -1,4 +1,4 @@
-riskmap: spec/sync_fifo/riskmap.yaml@v0.1
+riskmap: spec/sync_fifo/riskmap.yaml@v0.2
 blocks:
   - id: sync_fifo
     risk: HIGH

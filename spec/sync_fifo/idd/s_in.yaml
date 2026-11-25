@@ -1,5 +1,5 @@
 idd: IDD-S_IN
-version: "0.1"
+version: "0.2"
 block: sync_fifo
 side: slave
 protocol_class: valid-ready

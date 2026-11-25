@@ -35,3 +35,13 @@ decisions:
     alternatives: ["synchronous SRAM macro (read latency breaks the no-bubble and hold rules)", "flop array (chosen)"]
     decision: "Kemi builds the storage as a flop array; the SAD records this as guidance and the RTM states only port behaviour."
     decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-05
+    date: 2026-11-25
+    status: proposed
+    challenge_ref: AC-1
+    title: "Dedicated output stage: out_valid and out_data come straight from flip-flops, not from the read mux"
+    req_ids: [REQ-3.1.8, REQ-3.2.2, REQ-3.2.4, REQ-3.3.1, REQ-6.1.1]
+    context: "AC-1: the proxy with out_data behind a 16:1 read mux missed 200 MHz (196 MHz, slack -2.76 ns on the output path). The request is to decompose the block so out_data is driven directly from a flip-flop."
+    alternatives: ["errata_major: lower the frequency target (not chosen: not approved)", "keep the read mux on out_data (measured miss)", "dedicated output stage in front of a body store (chosen)"]
+    decision: "sync_fifo is built as a body store plus an output stage of one word. The oldest word and out_valid live in the output stage and drive out_data and out_valid from flip-flops; the body store holds up to 15 further words, so the total capacity stays 16. When the output stage is free or released and the body store is empty, an accepted word loads the output stage at the clock edge (one-cycle latency, no write-through to the ports). out_data is loaded with 0 when the stage empties. in_ready stays: run and (not full, or out_ready), with full meaning the output stage and the 15 body words are all held, so the single out_ready to in_ready arc and in_ready 0 during reset are kept. Ports, REQ ids and the 200 MHz target are unchanged. Flop-array storage for the body stays guidance only. This ADR is a decomposition change; it does not close AC-1, which stays open until a measurement meets 200 MHz."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
