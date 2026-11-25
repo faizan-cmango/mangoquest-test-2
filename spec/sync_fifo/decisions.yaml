@@ -1,0 +1,37 @@
+decisions:
+  - id: ADR-01
+    date: 2026-11-25
+    status: proposed
+    title: "Allow one combinational arc, out_ready to in_ready, only while the FIFO is full"
+    req_ids: [REQ-3.1.6, REQ-3.1.7, REQ-3.3.1, REQ-3.3.2]
+    context: "The brief requires in_ready to respond combinationally to out_ready when full, and also forbids any combinational path between input and output ports. These contradict each other. The person was asked and chose option 1."
+    alternatives: ["no combinational paths, accept a bubble when full", "no combinational paths, add a skid entry so the capacity changes", "allow only the out_ready to in_ready arc while full (chosen)"]
+    decision: "The no-combinational-path rule is read as: no path except out_ready to in_ready while the FIFO holds 16 words. All other input-to-output paths stay forbidden."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-02
+    date: 2026-11-25
+    status: proposed
+    title: "No write-through when empty: one-cycle latency from accept to out_valid"
+    req_ids: [REQ-3.1.8, REQ-3.3.1]
+    context: "A write-through from in_data to out_data when empty would be a combinational input-to-output path, which the brief forbids."
+    alternatives: ["combinational bypass when empty", "one-cycle latency (chosen)"]
+    decision: "A word accepted into an empty FIFO appears on the outputs one cycle after the accepting edge."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-03
+    date: 2026-11-25
+    status: proposed
+    title: "in_ready is 0 during reset and out_data is 0 when out_valid is 0"
+    req_ids: [REQ-3.2.2, REQ-3.2.4]
+    context: "The brief fixes reset only as emptying the FIFO and clearing out_valid. The reset values of in_ready and out_data are open; accepting a word while rst_n is 0 would lose it."
+    alternatives: ["in_ready 1 in reset, accepted words dropped", "in_ready 0 in reset (chosen)", "out_data unspecified when out_valid is 0", "out_data 0 when out_valid is 0 (chosen)"]
+    decision: "in_ready stays 0 until the first edge with rst_n 1 has passed; out_data is 0 whenever out_valid is 0."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}
+  - id: ADR-04
+    date: 2026-11-25
+    status: proposed
+    title: "Storage as a 16-word flop array with two wrap-around indices and an occupancy count"
+    req_ids: [REQ-3.1.1, REQ-3.1.3, REQ-6.1.1]
+    context: "The brief fixes depth and width, not the storage. Flops give a read of the oldest word from state alone, so no input reaches out_data, and let a full FIFO write and read in one edge."
+    alternatives: ["synchronous SRAM macro (read latency breaks the no-bubble and hold rules)", "flop array (chosen)"]
+    decision: "Kemi builds the storage as a flop array; the SAD records this as guidance and the RTM states only port behaviour."
+    decided_by: {actor_ref: faizan@chipmango.com, role: adr}

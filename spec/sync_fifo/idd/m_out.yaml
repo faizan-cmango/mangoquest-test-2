@@ -1,0 +1,25 @@
+idd: IDD-M_OUT
+version: "0.1"
+block: sync_fifo
+side: master
+protocol_class: valid-ready
+sad_section: "3.1"
+clock: core_clk
+reset: rst_n
+ports:
+  - {name: out_valid, dir: out, width: 1, type: logic, req: REQ-3.1.8, reset_value: 0, meaning: "FIFO presents its oldest word"}
+  - {name: out_data, dir: out, width: 32, type: logic, req: REQ-3.1.3, reset_value: 0, meaning: "oldest word while out_valid is 1; 0 while out_valid is 0"}
+  - {name: out_ready, dir: in, width: 1, type: logic, req: REQ-3.1.2, reset_value: n/a, meaning: "consumer takes the presented word this cycle"}
+omitted_signals: []
+rules:
+  - {id: R1, holder: block, req: REQ-3.2.1, text: "While out_valid is 1 and out_ready is 0, out_valid stays 1 and out_data keeps its value at the next edge."}
+  - {id: R2, holder: block, req: REQ-3.3.1, text: "out_valid and out_data change only at a core_clk edge; no input port influences them within a cycle."}
+  - {id: R3, holder: environment, req: REQ-3.1.2, text: "The consumer may change out_ready at any cycle."}
+timing:
+  - {req: REQ-3.2.2, clock: core_clk, from: "first edge with rst_n 0", to: "out_valid is 0 and out_data is 0", cycles: 1, text: "outputs take their reset values at the first edge with rst_n 0."}
+corner_cases:
+  - {id: C1, req: REQ-3.2.1, text: "Stall: out_ready 0 for many cycles; out_valid and out_data unchanged even while in_data changes and words are accepted.", vps: VPS-09}
+  - {id: C2, req: REQ-3.3.1, text: "Word accepted into an empty FIFO: out_valid is still 0 in the accepting cycle.", vps: VPS-10}
+  - {id: C3, req: REQ-3.2.4, text: "out_data is 0 whenever out_valid is 0, including after reset.", vps: VPS-01}
+registers: []
+errata_applied: []
